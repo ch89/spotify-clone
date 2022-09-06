@@ -1,8 +1,21 @@
 <script setup>
 	import { ref, computed } from "vue"
 	import { useStore } from "vuex"
+	import {
+		getFirestore,
+		doc,
+		updateDoc,
+		arrayRemove,
+		arrayUnion,
+		onSnapshot,
+		collection,
+		deleteDoc,
+		setDoc
+	} from "firebase/firestore"
+	import { getAuth } from "firebase/auth"
 
 	const store = useStore()
+	const user = getAuth().currentUser
 
 	let song = computed(() => store.state.songs[store.state.index])
 
@@ -20,17 +33,25 @@
 
 		return `${minutes}:${seconds}`
 	}
+
+	let favorited = computed(() => song.value.favorites?.includes(user.uid))
+
+	let favorite = e => {
+		updateDoc(doc(getFirestore(), `songs/${song.value.id}`), {
+			favorites: favorited.value ? arrayRemove(user.uid) : arrayUnion(user.uid)
+		})
+	}
 </script>
 
 <template>
-	<div class="bg-[#181818] border-t border-[#282828] col-span-2 grid grid-cols-3 p-6 text-[#b3b3b3]">
+	<div class="bg-[#181818] border-t border-[#282828] col-span-2 grid grid-cols-3 p-6 text-[#b3b3b3]" v-if="song">
 		<div class="flex items-center gap-4">
 			<img :src="`/images/${song.name}.jpg`" alt="Song" class="w-12">
 			<div>
 				<h3 class="font-bold text-white">{{ song.title }}</h3>
 				<p class="text-sm">{{ song.artist }}</p>
 			</div>
-			<button @click="song.favorite = ! song.favorite" :class="{ 'text-[#1ed760]': song.favorite }">
+			<button @click="favorite" :class="{ 'text-[#1ed760]': favorited }">
 				<i class="fa-solid fa-heart"></i>
 			</button>
 			<button>
